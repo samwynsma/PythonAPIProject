@@ -11,6 +11,35 @@ class ApiGuiManager:
         self.id = 1
         self.title = ""
         self.body = ""
+    
+    def create_gui(self):
+        root = tk.Tk()
+        root.title("API Selection")
+        root.geometry("420x320")
+        root.resizable(False, False)
+
+        header = tk.Label(
+            root,
+            text="Welcome to Sam's API Selection app",
+            font=("Segoe UI", 14, "bold"),
+            wraplength=380,
+            justify="center",
+            pady=12,
+        )
+        header.pack()
+
+        instructions = tk.Label(
+            root,
+            text="Select a type of API command, the information that you want to use, and then click \"Enter\"",
+            font=("Segoe UI", 10),
+            wraplength=380,
+            justify="center",
+        )
+        instructions.pack(pady=(0, 14))
+
+        tk.Button(root, text="Quit", width=16, command=root.destroy).pack(pady=16)
+
+        root.mainloop()
 
 
 
@@ -51,6 +80,9 @@ def main():
     print("\nDELETE /posts/1")
     deleted_post = safe_request("DELETE", f"{BASE_URL}/posts/1")
     print(deleted_post)
+
+    gui = ApiGuiManager()
+    gui.create_gui()
 
     return
 
