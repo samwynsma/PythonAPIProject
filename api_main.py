@@ -89,33 +89,45 @@ class ApiGuiManager:
         self.id = self.ID_entry.get()
         self.title = self.title_entry.get()
         self.body = self.body_entry.get()
-        url = f"{BASE_URL}/"
-        url += self.resource_entry.get()
-        params = {}
-        if(len(self.user_id) > 0):
-            params["userId"] = self.user_id
 
-        if(len(self.id) > 0):
-            if(self.method == "POST" or self.method == "PUT" or self.method == "PATCH"):
-                params["id"] = self.id
-            url += "/"
-            url += self.id
-        
-        if(len(self.title) > 0):
-            params["title"] = self.title
+        url, kwargs = self.build_request_data(
+            self.method,
+            self.resource_entry.get().strip(),
+            self.user_id,
+            self.id,
+            self.title,
+            self.body,
+        )
 
-        if(len(self.body) > 0):
-            params["body"] = self.body
-
-        # For write methods send the data as JSON body, otherwise send as query params
-        if self.method in ("POST", "PUT", "PATCH"):
-            new_request = self.safe_request_api(self.method, url, json=params)
-        else:
-            new_request = self.safe_request_api(self.method, url, params=params)
+        new_request = self.safe_request_api(self.method, url, **kwargs)
 
         # Ensure the label receives a string
         self.result_label.config(text=str(new_request))
-    
+
+    @staticmethod
+    def build_request_data(method, resource="", user_id="", id_="", title="", body=""):
+        resource = resource.strip()
+        url = f"{BASE_URL}/{resource}" if resource else BASE_URL
+
+        params = {}
+        if user_id:
+            params["userId"] = user_id
+
+        if id_:
+            if method in ("POST", "PUT", "PATCH"):
+                params["id"] = id_
+            url = f"{url}/{id_}"
+
+        if title:
+            params["title"] = title
+
+        if body:
+            params["body"] = body
+
+        if method in ("POST", "PUT", "PATCH"):
+            return url, {"json": params}
+        return url, {"params": params}
+
 
     def safe_request_api(self, method, url, **kwargs):
         try:
@@ -148,30 +160,7 @@ def safe_request(method, url, **kwargs):
         return {"error": str(e)}
 
 def main():
-    print("GET /posts")
-    posts = safe_request("GET", f"{BASE_URL}/posts")
-    print(posts[:2])
-
-    print("\nGET /posts?userId=1")
-    posts = safe_request("GET", f"{BASE_URL}/posts", params={"userId" : 1})
-    print(posts)
-
-    print("\nPOST /posts")
-    new_post = safe_request("POST", f"{BASE_URL}/posts", json={"title": "A Test Post for Testing", "body" : "This is a drill.", "userId" : 1})
-    print(new_post)
-
-    print("\nPUT /posts/1")
-    updated_post = safe_request("PUT", f"{BASE_URL}/posts/1", json={"id": 1, "title": "Updated Test Title", "body": "New content for a new test!", "userId" : 1})
-    print(updated_post)
-
-    print("\nPATCH /posts/1")
-    patched_post = safe_request("PATCH", f"{BASE_URL}/posts/1", json={"id" : 1, "title" : "Only a little bit."})
-    print(patched_post)
-
-    print("\nDELETE /posts/1")
-    deleted_post = safe_request("DELETE", f"{BASE_URL}/posts/1")
-    print(deleted_post)
-
+    
     gui = ApiGuiManager()
     gui.create_gui()
 
