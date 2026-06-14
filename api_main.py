@@ -1,6 +1,15 @@
 import requests
 import tkinter as tk
 from tkinter import messagebox
+import os
+import json
+import datetime
+
+# Optional dependency: pyodbc (install with `pip install pyodbc`)
+try:
+    import pyodbc
+except Exception:
+    pyodbc = None
 
 BASE_URL = "https://jsonplaceholder.typicode.com"
 
@@ -40,20 +49,21 @@ class ApiGuiManager:
         request_frame = tk.Frame(root)
         request_frame.pack(padx=20, fill="x")
 
-
         self.request_type_var = tk.StringVar(value="GET")
-        tk.Label(request_frame, text="API Request Type", anchor="w").grid(row=0, column=0, sticky="w", pady=6)
+        tk.Label(request_frame, text="API Request Type", anchor="w").grid(row=0, column=0, sticky="w", pady=6, columnspan=3)
         tk.Radiobutton(request_frame, text="GET", variable=self.request_type_var, value="GET").grid(row=0, column=1, sticky="w")
         tk.Radiobutton(request_frame, text="POST", variable=self.request_type_var, value="POST").grid(row=0, column=2, sticky="w")
         tk.Radiobutton(request_frame, text="PUT", variable=self.request_type_var, value="PUT").grid(row=0, column=3, sticky="w")
         tk.Radiobutton(request_frame, text="PATCH", variable=self.request_type_var, value="PATCH").grid(row=0, column=4, sticky="w")
         tk.Radiobutton(request_frame, text="DELETE", variable=self.request_type_var, value="DELETE").grid(row=0, column=5, sticky="w")
+        tk.Radiobutton(request_frame, text="OPTIONS", variable=self.request_type_var, value="OPTIONS").grid(row=0, column=6, sticky="w")
 
         info_frame = tk.Frame(root)
         info_frame.pack(padx=20, fill="x")
 
         tk.Label(info_frame, text="Resource:", anchor="w").grid(row=0, column=0, sticky="w", pady=6)
-        self.resource_entry = tk.Entry(info_frame, width=28)
+        self.resource_entry = tk.Entry(info_frame, text="posts", width=28)
+        self.resource_entry.insert(0, "posts")
         self.resource_entry.grid(row=0, column=1, pady=6)
 
         tk.Label(info_frame, text="User ID:", anchor="w").grid(row=1, column=0, sticky="w", pady=6)
@@ -135,13 +145,69 @@ class ApiGuiManager:
             response = requests.request(method, url, timeout=10, **kwargs)
             response.raise_for_status()
             try:
-                return response.json()
+                result = response.json()
             except ValueError:
-                self.result_label.config(fg="red")
-                return response.text
+                text = response.text.strip()
+                self.result_label.config(fg="green")
+                if text:
+                    result = {"status_code": response.status_code, "text": text}
+                else:
+                    result = {
+                        "status_code": response.status_code,
+                        "headers": dict(response.headers),
+                        "message": "No response body returned.",
+                    }
+
+            # Attempt to write result to Access DB; failures shouldn't stop the app
+            try:
+                db_path = os.path.join(os.path.dirname(__file__), "APIDatabase.accdb")
+                self.write_results_to_access(db_path, True)
+            except Exception:
+                pass
+
+            return result
         except requests.exceptions.RequestException as e:
             self.result_label.config(fg="red")
-            return {"error": str(e)}
+            err = {"error": str(e)}
+            try:
+                db_path = os.path.join(os.path.dirname(__file__), "APIDatabase.accdb")
+                self.write_results_to_access(db_path, False)
+            except Exception:
+                pass
+            return err
+        
+    def write_results_to_access(self, db_path, isSuccessful, table_name="APIReq"):
+        """Write the given payload (any JSON-serializable object) into an Access .accdb file.
+
+        - Requires `pyodbc` and the Microsoft Access ODBC driver installed on Windows.
+        - Creates a simple table if it doesn't exist: ID (autonumber), Timestamp, ResultMemo.
+        """
+        if pyodbc is None:
+            raise RuntimeError("pyodbc is required to write to Access. Install with `pip install pyodbc`.")
+
+        conn_str = f"Driver={{Microsoft Access Driver (*.mdb, *.accdb)}};DBQ={db_path};"
+        conn = pyodbc.connect(conn_str)
+        cur = conn.cursor()
+
+        # Ensure table exists (try a simple select, create if it fails)
+        try:
+            cur.execute(f"SELECT TOP 1 * FROM {table_name}")
+        except Exception:
+            try:
+                # ACCESS uses COUNTER for autonumber and MEMO for long text
+                cur.execute(f"CREATE TABLE {table_name} (ID COUNTER PRIMARY KEY, Timestamp DATETIME, ResultMemo MEMO)")
+                conn.commit()
+            except Exception:
+                # If creation fails, continue and let INSERT raise the appropriate error
+                pass
+
+        successful = "NO"
+        if(isSuccessful):
+            successful = "YES"
+        cur.execute(f"INSERT INTO {table_name} (Command, Title, Body, Successful) VALUES (?, ?, ?, ?)", (self.method, self.title, self.body, successful))
+        conn.commit()
+        cur.close()
+        conn.close()
         
 
 
