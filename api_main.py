@@ -201,10 +201,7 @@ class ApiGuiManager:
                 # If creation fails, continue and let INSERT raise the appropriate error
                 pass
 
-        successful = "NO"
-        if(isSuccessful):
-            successful = "YES"
-        cur.execute(f"INSERT INTO {table_name} (Command, Title, Body, Successful) VALUES (?, ?, ?, ?)", (self.method, self.title, self.body, successful))
+        cur.execute(f"INSERT INTO {table_name} (Command, Title, Body, Successful) VALUES (?, ?, ?, ?)", (self.method, self.title, self.body, isSuccessful))
         conn.commit()
         cur.close()
         conn.close()
