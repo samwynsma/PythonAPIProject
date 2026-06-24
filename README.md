@@ -1,2 +1,2 @@
 # PythonAPIProject
-I need to hone in on my API skills to do well in interviews, so this project exists solely for that. Until I have a reason to use API in my other projects, of course.
+A simple API test application that stores results in an access database. I will try and alter the database details to make it something that other programs can use in the future.
