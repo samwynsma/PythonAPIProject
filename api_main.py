@@ -4,6 +4,7 @@ import os
 import json
 
 from history_manager import ApiHistoryManager
+from url_shortener import URLShortenManager
 
 BASE_URL = "https://jsonplaceholder.typicode.com"
 
@@ -18,6 +19,7 @@ class ApiGuiManager:
         self.body = ""
         self.root = None
         self.history_manager = ApiHistoryManager()
+        self.url_shorten_manager = URLShortenManager()
     
     def create_gui(self):
         root = tk.Tk()
@@ -89,7 +91,8 @@ class ApiGuiManager:
 
         tk.Button(button_frame, text="Run API Request", width=16, command=self.run_api_command).grid(row=0, column=0, padx=6)
         tk.Button(button_frame, text="History", width=16, command=self.get_history).grid(row=0, column=1, padx=6)
-        tk.Button(button_frame, text="Quit", width=16, command=root.destroy).grid(row=0, column=2, padx=6)
+        tk.Button(button_frame, text="URL Shortener", width=16, command=self.run_url_shortener).grid(row=0, column=2, padx=6)
+        tk.Button(button_frame, text="Quit", width=16, command=root.destroy).grid(row=0, column=3, padx=6)
 
         root.mainloop()
 
@@ -118,6 +121,10 @@ class ApiGuiManager:
     def get_history(self):
         parent = self.root if self.root is not None else None
         self.history_manager.show_history_popup(parent)
+
+    def run_url_shortener(self):
+        parent = self.root if self.root is not None else None
+        self.url_shorten_manager.show_url_popup(parent)
 
     @staticmethod
     def build_request_data(method, resource="", user_id="", id_="", title="", body=""):
