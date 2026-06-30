@@ -1,5 +1,28 @@
 import unittest
-from api_main import ApiGuiManager, BASE_URL
+from api_main import ApiGuiManager, ApiHistoryManager, BASE_URL
+
+
+class TestApiHistoryManager(unittest.TestCase):
+    def test_format_history_text_includes_expected_fields(self):
+        manager = ApiHistoryManager(db_path="dummy.accdb")
+        history = [{
+            "ID": 1,
+            "Timestamp": "2024-01-01 12:00:00",
+            "Command": "GET",
+            "Resource": "posts",
+            "UserID": "7",
+            "ResourceID": "1",
+            "Title": "Test title",
+            "Body": "Test body",
+            "Successful": True,
+        }]
+
+        formatted = manager.format_history_text(history)
+
+        self.assertIn("ID: 1", formatted)
+        self.assertIn("Method: GET", formatted)
+        self.assertIn("Resource: posts", formatted)
+        self.assertIn("Successful: True", formatted)
 
 
 class TestApiGuiManager(unittest.TestCase):
